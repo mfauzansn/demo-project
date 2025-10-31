@@ -83,6 +83,20 @@ class DataGenerator:
         random.shuffle(all_agents)
         
         df = pd.DataFrame(all_agents)
+
+        # Rename to match Streamlit app expected columns
+        df.rename(columns={
+            'duplicate_device': 'duplicate_devices',
+            'duplicate_ip': 'duplicate_ips'
+        }, inplace=True)
+
+        # Add columns expected by app but not generated here
+        df['same_location_count'] = df.groupby('city')['city'].transform('count') - 1
+
+        # Placeholder model scores (to avoid KeyError before fraud detector runs)
+        df['rule_based_score'] = np.nan
+        df['ml_score'] = np.nan
+
         return df
     
     @staticmethod
