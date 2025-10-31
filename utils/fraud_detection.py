@@ -34,12 +34,15 @@ class FraudDetector:
         df['fraud_score'] = 0
         
         # Rule 1: Duplicate device (30 points)
-        df.loc[df['duplicate_device'] > 5, 'fraud_score'] += 30
-        df.loc[df['duplicate_device'] > 10, 'fraud_score'] += 10  # Extra
-        
-        # Rule 2: Duplicate IP (25 points)
-        df.loc[df['duplicate_ip'] > 5, 'fraud_score'] += 25
-        df.loc[df['duplicate_ip'] > 10, 'fraud_score'] += 10  # Extra
+        df.loc[df['duplicate_devices'] > 5, 'fraud_score'] += 30
+        df.loc[df['duplicate_devices'] > 10, 'fraud_score'] += 10
+
+        df.loc[df['duplicate_ips'] > 5, 'fraud_score'] += 25
+        df.loc[df['duplicate_ips'] > 10, 'fraud_score'] += 10
+
+        df.loc[df['same_location_count'] > 5, 'fraud_score'] += 15
+        df.loc[df['same_location_count'] > 10, 'fraud_score'] += 10
+
         
         # Rule 3: Duplicate email domain (20 points)
         df.loc[df['duplicate_email'] > 0, 'fraud_score'] += 20
@@ -155,10 +158,11 @@ class FraudDetector:
         
         # Select features
         feature_cols = [
-            'duplicate_device', 'duplicate_ip', 'duplicate_email', 
-            'duplicate_phone', 'rapid_registration', 'total_transactions',
-            'avg_transaction'
+            'duplicate_devices', 'duplicate_ips', 'duplicate_email', 
+            'duplicate_phone', 'same_location_count', 'rapid_registration',
+            'total_transactions', 'avg_transaction'
         ]
+
         
         X = df[feature_cols]
         X_scaled = self.scaler.transform(X)
@@ -199,6 +203,12 @@ class FraudDetector:
         df = self.assign_risk_level(df.rename(columns={'final_score': 'fraud_score'}))
         df = df.rename(columns={'fraud_score': 'final_score'})
         
+        df['rule_based_score'] = df['fraud_score']     # Alias for UI
+        df['ml_score'] = df['ml_fraud_prob']           # Alias for UI
+        df['final_score_model'] = df['final_score']    # Avoid duplicate column name
+
+
+
         return df
     
     def generate_explanation(self, agent_row):
@@ -213,11 +223,11 @@ class FraudDetector:
         """
         explanations = []
         
-        if agent_row['duplicate_device'] > 5:
-            explanations.append(f"⚠️ Device used by {agent_row['duplicate_device']} agents")
+        if agent_row['duplicate_devices'] > 5:
+            explanations.append(f"⚠️ Device used by {agent_row['duplicate_devices']} agents")
         
-        if agent_row['duplicate_ip'] > 5:
-            explanations.append(f"⚠️ IP address shared with {agent_row['duplicate_ip']} agents")
+        if agent_row['duplicate_ips'] > 5:
+            explanations.append(f"⚠️ IP address shared with {agent_row['duplicate_ips']} agents")
         
         if agent_row['duplicate_email'] > 0:
             explanations.append(f"⚠️ Email domain duplicated")
@@ -237,6 +247,9 @@ class FraudDetector:
         if agent_row['avg_transaction'] % 1000000 == 0:
             explanations.append(f"⚠️ Suspicious round-number transactions")
         
+        if agent_row['same_location_count'] > 5:
+            explanations.append(f"⚠️ Same city cluster detected ({agent_row['same_location_count']} agents)")
+
         if not explanations:
             explanations.append("✅ No major risk indicators detected")
         
