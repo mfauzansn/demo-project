@@ -1,0 +1,24 @@
+# Core
+streamlit
+pandas
+numpy
+
+# Visualization
+plotly
+matplotlib
+seaborn
+
+# Machine Learning
+scikit-learn
+xgboost
+
+# Time Series
+prophet
+
+# Utils
+python-dateutil
+pytz
+
+# Optional: OpenAI (comment out if not using)
+# openai==1.6.1
+# python-dotenv==1.0.0
